@@ -50,38 +50,74 @@ joblib.dump(scaler, 'scaler.joblib')
 scaler_df = pd.DataFrame(X_train_scaled, columns=X_train.columns)
 scaler_df.hist(figsize=(10, 8), bins=20)
 
-param_rf = {
-    'n_estimators': [100, 150, 175, 200, 250],
-    'max_depth': [15, 20, 25, None],
-    'min_samples_split': [8, 10, 12, 15],
-    'min_samples_leaf': [4, 5, 6, 7]
+import joblib
+from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
+
+# AdaBoost
+param_ada = {
+    'n_estimators': [50, 75, 100, 150, 200, 300],
+    'learning_rate': [0.01, 0.05, 0.1, 0.15, 0.2, 0.25],
+    'algorithm': ['SAMME', 'SAMME.R']
 }
 
+ada_model = AdaBoostClassifier()
+grid_search_ada = GridSearchCV(estimator=ada_model, param_grid=param_ada, cv=5, scoring='accuracy')
+grid_search_ada.fit(X_train_scaled, y_train.values.ravel())
 
-rf_model = RandomForestClassifier()
-grid_search = GridSearchCV(estimator=rf_model, param_grid=param_rf, cv=5, scoring='accuracy')
-grid_search.fit(X_train_scaled, y_train.values.ravel())
+print("\nMeilleurs paramètres (AdaBoost) :")
+print(grid_search_ada.best_params_)
 
-print("\nMeilleurs paramètres (Random Forest) :")
-print(grid_search.best_params_)
+print("\nMeilleur score (AdaBoost) :")
+print(grid_search_ada.best_score_)
 
-print("\nMeilleur score (Random Forest) :")
-print(grid_search.best_score_)
+best_ada_model = grid_search_ada.best_estimator_
+y_pred_ada = best_ada_model.predict(X_test_scaled)
 
-best_rf_model = grid_search.best_estimator_
-y_pred_rf = best_rf_model.predict(X_test_scaled)
+print("\nMatrice de confusion (AdaBoost) :")
+print(confusion_matrix(y_test, y_pred_ada))
 
-print("\nMatrice de confusion (Random Forest) :")
-print(confusion_matrix(y_test, y_pred_rf))
+print("\nRapport de classification (AdaBoost) :")
+print(classification_report(y_test, y_pred_ada))
 
-print("\nRapport de classification (Random Forest) :")
-print(classification_report(y_test, y_pred_rf))
+accuracy_ada = accuracy_score(y_test, y_pred_ada)
+print(f"\nPrécision globale (Accuracy - AdaBoost) : {accuracy_ada:.4f}")
 
-accuracy_rf = accuracy_score(y_test, y_pred_rf)
-print(f"\nPrécision globale (Accuracy - Random Forest) : {accuracy_rf:.4f}")
+filename = f'AdaBoost_BestModel_Accuracy_{accuracy_ada:.4f}.joblib'
+joblib.dump(grid_search_ada.best_estimator_, filename)
 
-# Enregistrement du modèle avec l'accuracy dans le nom du fichier
-filename = f'RandomForest_BestModel_Accuracy_{accuracy_rf:.4f}.joblib'
-joblib.dump(grid_search.best_estimator_, filename)
+# Gradient Boosting
+param_gb = {
+    'n_estimators': [100, 125, 150, 200, 250],
+    'learning_rate': [0.01, 0.05, 0.1, 0.15, 0.2],
+    'max_depth': [3, 5, 7, 10, 15],
+    'subsample': [0.8, 0.9, 1.0]
+}
 
+gb_model = GradientBoostingClassifier()
 
+grid_search_gb = GridSearchCV(estimator=gb_model, param_grid=param_gb, cv=5, scoring='accuracy')
+grid_search_gb.fit(X_train_scaled, y_train.values.ravel())
+
+print("\nMeilleurs paramètres (Gradient Boosting) :")
+print(grid_search_gb.best_params_)
+
+print("\nMeilleur score (Gradient Boosting) :")
+print(grid_search_gb.best_score_)
+
+best_gb_model = grid_search_gb.best_estimator_
+
+y_pred_gb = best_gb_model.predict(X_test_scaled)
+
+print("\nMatrice de confusion (Gradient Boosting) :")
+print(confusion_matrix(y_test, y_pred_gb))
+
+print("\nRapport de classification (Gradient Boosting) :")
+print(classification_report(y_test, y_pred_gb))
+
+accuracy_gb = accuracy_score(y_test, y_pred_gb)
+print(f"\nPrécision globale (Accuracy - Gradient Boosting) : {accuracy_gb:.4f}")
+
+filename = f'GradientBoosting_BestModel_Accuracy_{accuracy_gb:.4f}.joblib'
+joblib.dump(grid_search_gb.best_estimator_, filename)
